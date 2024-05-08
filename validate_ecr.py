@@ -7,9 +7,7 @@ from rich.table import Table
 # define the base directory and file paths
 base_dir = Path(__file__).parent
 xslt_path = base_dir / "schema" / "CDAR2_IG_PHCASERPT_R2_STU1.1_SCHEMATRON.xsl"
-xml_path = (
-    base_dir / "sample-files" / "CDAR2_IG_PHCASERPT_R2_STU1.1_2019APR_SAMPLE_ZIKA.xml"
-)
+xml_path = base_dir / "sample-files" / "eICR-TC-COVID-DX_20210412_eicr.xml"
 
 
 def parse_svrl(svrl_result):
