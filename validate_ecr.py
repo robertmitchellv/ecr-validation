@@ -8,6 +8,7 @@ from rich.table import Table
 base_dir = Path(__file__).parent
 xslt_path = base_dir / "schema" / "CDAR2_IG_PHCASERPT_R2_STU1.1_SCHEMATRON.xsl"
 xml_path = base_dir / "sample-files" / "eICR-TC-COVID-DX_20210412_eicr.xml"
+svrl_output_path = base_dir / "logs" / "svrl-output.xml"
 
 
 def parse_svrl(svrl_result):
@@ -107,6 +108,9 @@ def validate_xml_with_schematron(xml_path):
             result = compiled_stylesheet.transform_to_string(source_file=str(xml_path))
             if result:
                 console.print("Transformation successful.", style="bold green1")
+                console.print("Saving to logs/svrl-output.xml.", style="bold green1")
+                with open(svrl_output_path, "w") as f:
+                    f.write(result)
                 validation_results = parse_svrl(result)
                 display_svrl(validation_results, console)
                 display_summary(validation_results, console)
