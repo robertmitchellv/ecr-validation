@@ -2,40 +2,60 @@ from lxml import etree
 from rich.console import Console
 from rich.table import Table
 
-# Load the SVRL file
-svrl_path = "svrl-output.xml"
-with open(svrl_path, "rb") as file:  # Open as binary to avoid encoding issues
-    svrl_content = file.read()
+# load the svrl output file
+tree = etree.parse("svrl-output.xml")
+root = tree.getroot()
 
-# Parse the SVRL content
-svrl_doc = etree.fromstring(svrl_content)
+# define namespaces
+namespaces = {"svrl": "http://purl.oclc.org/dsdl/svrl"}
 
-# Namespace map for finding elements
-ns = {
-    "svrl": "http://purl.oclc.org/dsdl/svrl",
-    "sch": "http://purl.oclc.org/dsdl/schematron",
-}
+# list to hold all failed assertions with additional details
+failed_assertions_details = []
 
-# Extract failed assertions
-errors = []
-for assertion in svrl_doc.findall(".//svrl:failed-assert", namespaces=ns):
-    message = assertion.find("svrl:text", namespaces=ns).text.strip()
-    context = assertion.get("location", "No context provided").strip()
-    test = assertion.get("test").strip()
-    errors.append({"message": message, "context": context, "test": test})
+# iterate over all failed assertions
+for failed_assert in root.xpath("//svrl:failed-assert", namespaces=namespaces):
+    # find the nearest preceding fired-rule using xpath
+    fired_rule = failed_assert.xpath(
+        "preceding-sibling::svrl:fired-rule[1]", namespaces=namespaces
+    )
+    if fired_rule:
+        role = fired_rule[0].get("role")
+    else:
+        role = "Role not found or missing"
 
-# Create a Rich console
+    # collect information from the failed assertion
+    details = {
+        "role": role,
+        "message": failed_assert.find(".//svrl:text", namespaces=namespaces).text,
+        "location": failed_assert.get("location"),
+        "test": failed_assert.get("test"),
+    }
+    failed_assertions_details.append(details)
+
+# setup Rich console
 console = Console()
 
-# Create a Rich table with lines between rows
-table = Table(show_header=True, header_style="bold magenta", show_lines=True)
-table.add_column("Message", style="dim", width=50)
-table.add_column("Context", style="dim", width=50)
-table.add_column("Test", style="dim", width=50)
+# create a table
+table = Table(show_lines=True)
 
-# Add rows to the table
-for error in errors:
-    table.add_row(error["message"], error["context"], error["test"])
+# add columns
+table.add_column("Role", style="bold")
+table.add_column("Message")
+table.add_column("Context", header_style="bold cyan")
+table.add_column("Test", style="dim")
 
-# Display the table
+# add rows to the table with color coding based on the role
+for item in failed_assertions_details:
+    style = (
+        "bright_red"
+        if "error" in item["role"].lower()
+        else "orange1"
+        if "warning" in item["role"].lower()
+        else ""
+    )
+    table.add_row(
+        item["role"], item["message"], item["location"], item["test"], style=style
+    )
+
+# print the table
 console.print(table)
