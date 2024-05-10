@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 from lxml import etree
 from saxonche import PySaxonProcessor
@@ -7,7 +8,6 @@ from rich.table import Table
 # define the base directory and file paths
 base_dir = Path(__file__).parent
 xslt_path = base_dir / "schema" / "CDAR2_IG_PHCASERPT_R2_STU1.1_SCHEMATRON.xsl"
-xml_path = base_dir / "sample-files" / "eICR-TC-COVID-DX_20210412_eicr.xml"
 svrl_output_path = base_dir / "logs" / "svrl-output.xml"
 
 
@@ -125,4 +125,34 @@ def validate_xml_with_schematron(xml_path):
             )
 
 
-validate_xml_with_schematron(xml_path=str(xml_path))
+def main():
+    data_directory = base_dir / "sample-files"
+
+    try:
+        fzf_command = [
+            "fzf",
+            "--prompt=select an eICR XML file: ",
+            "--height=50%",
+            "--layout=reverse",
+            "--border",
+            "--exit-0",
+            "--ansi",
+        ]
+
+        result = subprocess.run(
+            fzf_command, stdout=subprocess.PIPE, text=True, cwd=data_directory
+        )
+        selected_file = result.stdout.strip()
+
+        if not selected_file:
+            print("No file selected")
+            return
+
+        xml_path = data_directory / selected_file
+        validate_xml_with_schematron(xml_path=str(xml_path))
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+if __name__ == "__main__":
+    main()
